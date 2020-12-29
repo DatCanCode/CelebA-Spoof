@@ -22,12 +22,13 @@ import sys
 import logging
 
 import numpy as np
-from client import get_image, verify_output
+from client import get_image, verify_output, cal_score
 
 logging.basicConfig(level=logging.INFO)
 
 
 from tsn_predict import TSNPredictor as CelebASpoofDetector
+
 
 
 def run_test(detector_class, image_iter):
@@ -75,6 +76,8 @@ def run_test(detector_class, image_iter):
     """)
 
     # verify the algorithm output
+    print(output_probs)
+    # cal_score(output_probs)
     verify_output(output_probs)
 
 

@@ -7,17 +7,62 @@ import sys
 import logging
 
 import numpy as np
-
+from sklearn.metrics import classification_report
 
 
 #================================================================================
 # Please change following path to your OWN
-LOCAL_ROOT = './'
-LOCAL_IMAGE_LIST_PATH = 'metas/intra_test/test_label.json'
+# LOCAL_ROOT = '/mnt/c/Users/datnq16/Desktop/Detectedface/'
+LOCAL_ROOT = '/mnt/c/Users/datnq16/Desktop/Raw/Hinh/'
+# LOCAL_IMAGE_LIST_PATH = 'metas/intra_test/test_label.json'
+LOCAL_IMAGE_LIST_PATH = 'hinh.json'
 #================================================================================
 
 
 def read_image(image_path):
+    """/mnt/c/Users/datnq16/Desktop/Detectedface/ImposterFace/0003/0003_01_04_02_418.jpg1
+    Read an image from input path
+
+    params:
+        - image_local_path (str): the path of image.
+    return:
+        - image: Required image.
+    """
+    image_path = LOCAL_ROOT+image_path
+    # print(image_path)
+    img = cv2.imread(image_path)
+    # Get the shape of input image
+    real_h,real_w,c = img.shape
+    assert os.path.exists(image_path[:-4] + '_BB.txt'),'path not exists' + ' ' + image_path
+    
+    with open(image_path[:-4] + '_BB.txt','r') as f:
+        material = f.readline()
+        try:
+            x1, y1, x2, y2, score = material.strip().split(' ')
+        except:
+            logging.info('Bounding Box of' + ' ' + image_path + ' ' + 'is wrong')   
+        try:
+            
+            # y1 = min(int(y1), 0)
+            # y2 = max(int(y2), real_w)
+            # x1 = min(int(x1), 0)
+            # x2 = max(int(x2), real_h)
+            xx1 = 0 if x1[0] == '-' else int(x1)
+            yy1 = 0 if y1[0] == '-' else int(y1)
+            yy2 = int(y2)
+            xx2 = int(x2)
+            # print(xx1, xx2, yy1, yy2)
+            img = img[yy1:yy2,xx1:xx2,:]
+            
+
+        except:
+            logging.info('Cropping Bounding Box of' + ' ' + image_path + ' ' + 'goes wrong')
+            print(x1, x2, y1, y2, real_h, real_w)
+    
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return img
+
+def _read_image(image_path):
     """
     Read an image from input path
 
@@ -60,12 +105,16 @@ def read_image(image_path):
 
         except:
             logging.info('Cropping Bounding Box of' + ' ' + image_path + ' ' + 'goes wrong')   
-
+    
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
 
+def cal_score(scores, y_true, thres):
+    y_pred = [1 if score > thres else 0 for score in scores]
 
+    print(classification_report(y_true, y_pred))
+    
 def get_image(max_number=None):
     """
     This function returns a iterator of image.
@@ -77,7 +126,7 @@ def get_image(max_number=None):
     with open(LOCAL_ROOT+LOCAL_IMAGE_LIST_PATH) as f:
         image_list = json.load(f)
     logging.info("got local image list, {} image".format(len(image_list.keys())))
-    Batch_size = 1024
+    Batch_size = 32
     logging.info("Batch_size=, {}".format(Batch_size))
     n = 0
     final_image = []
@@ -184,6 +233,7 @@ def verify_output(output_probs):
 
     fpr_list = [0.01, 0.005, 0.001]
     threshold_list = get_thresholdtable_from_fpr(scores,labels, fpr_list)
+    cal_score(scores, labels, threshold_list[0])
     tpr_list = get_tpr_from_threshold(scores,labels, threshold_list)
       
     # Show the result into score_path/score.txt  
